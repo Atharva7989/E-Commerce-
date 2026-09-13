@@ -26,19 +26,13 @@ README.md - General setup instructions
 ```
 
 ## Completed Phases
-- None
-
-## Current Phase
 - Phase 1: Project Foundation Setup
 
+## Current Phase
+- Phase 1 Completed. Waiting for Phase 2.
+
 ## Pending Work
-- Phase 1: Set up the Next.js frontend.
-- Phase 1: Set up the NestJS backend.
-- Phase 1: Configure Prisma for PostgreSQL/Supabase.
-- Phase 1: Configure `.env` and `.env.example` safely.
-- Phase 1: Add a simple `GET /health` endpoint to the backend.
-- Phase 1: Verify frontend and backend run successfully.
-- Phase 1: Configure Git properly.
+- Phase 2: TBA
 
 ## Important Decisions
 - Using Next.js App Router for frontend.
