@@ -1,5 +1,8 @@
+// Server component - no client directive needed
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
+// Removed client‑only hooks; cart actions are handled in a separate client component
+import AddToCartButton from '../../cart/AddToCartButton';
 
 interface Product {
   id: string;
@@ -14,8 +17,10 @@ interface Product {
 export default async function ProductDetails({ params }: { params: { id: string } }) {
   let product: Product | null = null;
   
+  const { id } = await params;
+  const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001';
   try {
-    const res = await fetch(`http://localhost:3000/products/${params.id}`, { cache: 'no-store' });
+    const res = await fetch(`${backendUrl}/products/${id}`, { cache: 'no-store' });
     if (!res.ok) {
       if (res.status === 404) return notFound();
       throw new Error('Failed to fetch product');
@@ -66,16 +71,8 @@ export default async function ProductDetails({ params }: { params: { id: string 
               <p className="text-slate-300 text-lg leading-relaxed">{product.description}</p>
             </div>
             
-            <button 
-              disabled={product.stock === 0}
-              className={`w-full py-4 rounded-xl text-lg font-bold transition-all duration-300 transform active:scale-95 ${
-                product.stock > 0 
-                  ? 'bg-gradient-to-r from-teal-500 to-indigo-500 hover:from-teal-400 hover:to-indigo-400 text-white shadow-[0_0_20px_rgba(20,184,166,0.3)] hover:shadow-[0_0_25px_rgba(20,184,166,0.5)]' 
-                  : 'bg-slate-700 text-slate-500 cursor-not-allowed'
-              }`}
-            >
-              {product.stock > 0 ? 'Add to Cart' : 'Currently Unavailable'}
-            </button>
+            {/* Client component handling Add to Cart */}
+            <AddToCartButton productId={product.id} stock={product.stock} />
           </div>
         </div>
       </div>
