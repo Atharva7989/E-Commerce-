@@ -3,6 +3,7 @@ import { CartService } from './cart.service';
 import { JwtAuthGuard } from '../auth/jwt-auth/jwt-auth.guard';
 import { CreateCartItemDto } from './dto/create-cart-item.dto';
 import { UpdateCartItemDto } from './dto/update-cart-item.dto';
+import { MergeCartDto } from './dto/merge-cart.dto';
 
 @UseGuards(JwtAuthGuard)
 @Controller('cart')
@@ -19,6 +20,12 @@ export class CartController {
   async addItem(@Req() req, @Body() createDto: CreateCartItemDto) {
     const userId = req.user.sub;
     return this.cartService.addItem(userId, createDto);
+  }
+
+  @Post('merge')
+  async mergeCart(@Req() req, @Body() mergeDto: MergeCartDto) {
+    const userId = req.user.sub;
+    return this.cartService.mergeCart(userId, mergeDto.items || []);
   }
 
   @Patch('items/:productId')

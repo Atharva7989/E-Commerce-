@@ -72,7 +72,7 @@ export default async function ProductDetails({ params }: { params: { id: string 
             </div>
             
             {/* Client component handling Add to Cart */}
-            <AddToCartButton productId={product.id} stock={product.stock} />
+            <AddToCartButton productId={product.id} stock={product.stock} product={product} />
           </div>
         </div>
       </div>

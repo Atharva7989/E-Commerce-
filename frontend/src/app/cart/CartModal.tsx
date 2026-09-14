@@ -1,11 +1,24 @@
-"use client";
+'use client';
 
+import React from 'react';
+import { useRouter } from 'next/navigation';
 import { useCart } from './CartContext';
 
 export const CartModal: React.FC = () => {
-  const { cart, isOpen, closeCart, updateItem, removeItem, clearCart } = useCart();
+  const router = useRouter();
+  const { cart, isOpen, isAuthenticated, closeCart, updateItem, removeItem, clearCart } = useCart();
 
   if (!isOpen) return null;
+
+  const handleProceedToCheckout = (e: React.MouseEvent) => {
+    e.preventDefault();
+    closeCart();
+    if (!isAuthenticated) {
+      router.push('/login?redirect=/checkout');
+    } else {
+      router.push('/checkout');
+    }
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={closeCart}>
@@ -74,13 +87,12 @@ export const CartModal: React.FC = () => {
               Continue Shopping
             </button>
             {cart && cart.items.length > 0 && (
-              <a
-                href="/checkout"
-                onClick={closeCart}
+              <button
+                onClick={handleProceedToCheckout}
                 className="px-5 py-2 text-sm font-semibold bg-gradient-to-r from-teal-500 to-indigo-600 hover:from-teal-400 hover:to-indigo-500 text-white rounded-lg shadow-lg shadow-teal-500/20 transition-all flex items-center gap-2"
               >
                 Proceed to Checkout →
-              </a>
+              </button>
             )}
           </div>
         </div>
