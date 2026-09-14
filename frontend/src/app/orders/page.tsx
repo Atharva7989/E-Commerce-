@@ -13,6 +13,7 @@ import {
   ShoppingBag,
   CheckCircle2,
   ChevronRight,
+  Truck,
 } from 'lucide-react';
 
 interface OrderItem {
@@ -37,6 +38,11 @@ interface Order {
   shippingFullName: string;
   shippingCity: string;
   shippingState: string;
+  shippingStatus?: 'NOT_SHIPPED' | 'SHIPPED' | 'OUT_FOR_DELIVERY' | 'DELIVERED';
+  courierName?: string | null;
+  trackingNumber?: string | null;
+  shippedAt?: string | null;
+  deliveredAt?: string | null;
   createdAt: string;
   items: OrderItem[];
 }
@@ -229,6 +235,22 @@ export default function MyOrdersPage() {
                         {order.status}
                       </span>
 
+                      {/* Shipping Status Badge */}
+                      <span
+                        className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold border ${
+                          order.shippingStatus === 'DELIVERED'
+                            ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
+                            : order.shippingStatus === 'OUT_FOR_DELIVERY'
+                            ? 'bg-amber-500/20 text-amber-300 border-amber-500/30'
+                            : order.shippingStatus === 'SHIPPED'
+                            ? 'bg-indigo-500/20 text-indigo-300 border-indigo-500/30'
+                            : 'bg-slate-800 text-slate-400 border-slate-700'
+                        }`}
+                      >
+                        <Truck className="w-3.5 h-3.5" />
+                        {order.shippingStatus ? order.shippingStatus.replace(/_/g, ' ') : 'NOT SHIPPED'}
+                      </span>
+
                       {/* COD Payment Status Badge */}
                       <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-500/10 text-amber-300 border border-amber-500/30">
                         <Banknote className="w-3.5 h-3.5 text-amber-400" />
@@ -239,10 +261,21 @@ export default function MyOrdersPage() {
 
                   {/* Middle Section: Items Summary & Thumbnails */}
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                    <div className="space-y-2">
-                      <p className="text-xs text-slate-400 font-medium">
-                        {totalItems} {totalItems === 1 ? 'item' : 'items'} in this order
-                      </p>
+                    <div className="space-y-2.5">
+                      <div className="flex items-center gap-3">
+                        <p className="text-xs text-slate-400 font-medium">
+                          {totalItems} {totalItems === 1 ? 'item' : 'items'} in this order
+                        </p>
+                        {(order.courierName || order.trackingNumber) && (
+                          <div className="inline-flex items-center gap-1.5 text-xs text-slate-300 bg-slate-900/60 px-2.5 py-0.5 rounded-lg border border-slate-700/60">
+                            <Truck className="w-3 h-3 text-teal-400" />
+                            <span>{order.courierName || 'Courier'}</span>
+                            {order.trackingNumber && (
+                              <span className="font-mono text-teal-300">#{order.trackingNumber}</span>
+                            )}
+                          </div>
+                        )}
+                      </div>
 
                       {/* Product Thumbnails or Names */}
                       <div className="flex flex-wrap items-center gap-2">

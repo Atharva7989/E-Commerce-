@@ -33,6 +33,11 @@ interface OrderDetails {
   id: string;
   userId: string;
   status: string;
+  shippingStatus?: 'NOT_SHIPPED' | 'SHIPPED' | 'OUT_FOR_DELIVERY' | 'DELIVERED';
+  courierName?: string | null;
+  trackingNumber?: string | null;
+  shippedAt?: string | null;
+  deliveredAt?: string | null;
   paymentMethod: string;
   paymentStatus: string;
   totalAmount: number;
@@ -211,11 +216,33 @@ export default function OrderDetailsPage() {
               </p>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
                 <CheckCircle2 className="w-3.5 h-3.5" />
                 {order.status}
               </span>
+              {order.shippingStatus && (
+                <span
+                  className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold border ${
+                    order.shippingStatus === 'DELIVERED'
+                      ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
+                      : order.shippingStatus === 'OUT_FOR_DELIVERY'
+                      ? 'bg-indigo-500/20 text-indigo-300 border-indigo-500/30'
+                      : order.shippingStatus === 'SHIPPED'
+                      ? 'bg-sky-500/20 text-sky-300 border-sky-500/30'
+                      : 'bg-amber-500/20 text-amber-300 border-amber-500/30'
+                  }`}
+                >
+                  <Truck className="w-3.5 h-3.5" />
+                  {order.shippingStatus === 'DELIVERED'
+                    ? 'Delivered'
+                    : order.shippingStatus === 'OUT_FOR_DELIVERY'
+                    ? 'Out for Delivery'
+                    : order.shippingStatus === 'SHIPPED'
+                    ? 'Shipped'
+                    : 'Processing'}
+                </span>
+              )}
               <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold bg-amber-500/15 text-amber-300 border border-amber-500/30">
                 <Banknote className="w-3.5 h-3.5 text-amber-400" />
                 COD ({order.paymentStatus})
@@ -226,6 +253,121 @@ export default function OrderDetailsPage() {
 
         {/* Order Details Container */}
         <div className="space-y-6">
+          {/* Delivery Progress Indicator Card */}
+          <div className="bg-slate-800/70 border border-slate-700/80 rounded-3xl p-6 backdrop-blur-sm shadow-xl">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-6 pb-4 border-b border-slate-700/60">
+              <div>
+                <h3 className="text-base font-bold text-white flex items-center gap-2">
+                  <Truck className="w-5 h-5 text-teal-400" />
+                  Delivery & Shipment Progress
+                </h3>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  Real-time status updates for your package delivery
+                </p>
+              </div>
+              {order.trackingNumber && (
+                <div className="flex items-center gap-2 bg-slate-900/80 border border-slate-700/80 rounded-xl px-3 py-1.5 self-start sm:self-auto">
+                  <span className="text-xs text-slate-400 font-medium">Tracking #:</span>
+                  <span className="text-xs font-mono font-bold text-teal-300">{order.trackingNumber}</span>
+                  {order.courierName && (
+                    <span className="text-xs text-slate-400">({order.courierName})</span>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Stepper */}
+            <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 relative">
+              {[
+                {
+                  id: 1,
+                  title: 'Order Confirmed',
+                  desc: 'Placed & inventory reserved',
+                  date: new Date(order.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }),
+                  completed: true,
+                  active: (!order.shippingStatus || order.shippingStatus === 'NOT_SHIPPED') && order.status !== 'CANCELLED',
+                },
+                {
+                  id: 2,
+                  title: 'Dispatched / Shipped',
+                  desc: order.courierName ? `In transit via ${order.courierName}` : 'Handed over to carrier',
+                  date: order.shippedAt ? new Date(order.shippedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : null,
+                  completed: ['SHIPPED', 'OUT_FOR_DELIVERY', 'DELIVERED'].includes(order.shippingStatus || ''),
+                  active: order.shippingStatus === 'SHIPPED',
+                },
+                {
+                  id: 3,
+                  title: 'Out for Delivery',
+                  desc: 'Package is with local courier',
+                  date: null,
+                  completed: ['OUT_FOR_DELIVERY', 'DELIVERED'].includes(order.shippingStatus || ''),
+                  active: order.shippingStatus === 'OUT_FOR_DELIVERY',
+                },
+                {
+                  id: 4,
+                  title: 'Delivered',
+                  desc: 'Package delivered to recipient',
+                  date: order.deliveredAt ? new Date(order.deliveredAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : null,
+                  completed: order.shippingStatus === 'DELIVERED',
+                  active: order.shippingStatus === 'DELIVERED',
+                },
+              ].map((step, idx, arr) => {
+                const isPast = step.completed;
+                const isCurrent = step.active;
+
+                return (
+                  <div key={step.id} className="flex sm:flex-col items-start gap-3.5 relative">
+                    <div className="flex items-center sm:w-full">
+                      {/* Circle Icon */}
+                      <div
+                        className={`w-9 h-9 rounded-xl flex items-center justify-center font-bold text-xs shrink-0 transition-all shadow-md ${
+                          isPast
+                            ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 ring-2 ring-emerald-500/20'
+                            : isCurrent
+                            ? 'bg-teal-500/20 text-teal-300 border border-teal-500/40 animate-pulse ring-2 ring-teal-500/30'
+                            : 'bg-slate-800 text-slate-500 border border-slate-700'
+                        }`}
+                      >
+                        {isPast ? (
+                          <CheckCircle2 className="w-5 h-5 text-emerald-400" />
+                        ) : (
+                          <span>{step.id}</span>
+                        )}
+                      </div>
+
+                      {/* Connecting Line (hidden on last item, visible on desktop) */}
+                      {idx < arr.length - 1 && (
+                        <div
+                          className={`hidden sm:block flex-1 h-1 mx-2 rounded ${
+                            arr[idx + 1].completed
+                              ? 'bg-emerald-500/60'
+                              : 'bg-slate-700/60'
+                          }`}
+                        />
+                      )}
+                    </div>
+
+                    {/* Step Text */}
+                    <div className="space-y-0.5">
+                      <h4
+                        className={`text-sm font-semibold ${
+                          isPast || isCurrent ? 'text-white' : 'text-slate-500'
+                        }`}
+                      >
+                        {step.title}
+                      </h4>
+                      <p className="text-xs text-slate-400 leading-snug">{step.desc}</p>
+                      {step.date && (
+                        <p className="text-[11px] font-medium text-teal-400/90 pt-0.5">
+                          {step.date}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
           {/* Top Info Cards: Shipping Destination & Payment Info */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             {/* Shipping Address Snapshot Card */}

@@ -12,7 +12,8 @@ import {
   ArrowRight,
   User,
   Calendar,
-  DollarSign
+  DollarSign,
+  Truck
 } from 'lucide-react';
 
 interface OrderItem {
@@ -27,6 +28,11 @@ interface AdminOrder {
   id: string;
   userId: string;
   status: 'PENDING' | 'CONFIRMED' | 'CANCELLED' | 'DELIVERED';
+  shippingStatus?: 'NOT_SHIPPED' | 'SHIPPED' | 'OUT_FOR_DELIVERY' | 'DELIVERED';
+  courierName?: string | null;
+  trackingNumber?: string | null;
+  shippedAt?: string | null;
+  deliveredAt?: string | null;
   paymentMethod: string;
   paymentStatus: string;
   totalAmount: number;
@@ -85,7 +91,9 @@ export default function AdminOrdersPage() {
         (o) =>
           o.id.toLowerCase().includes(q) ||
           o.user.email.toLowerCase().includes(q) ||
-          (o.user.name && o.user.name.toLowerCase().includes(q))
+          (o.user.name && o.user.name.toLowerCase().includes(q)) ||
+          (o.trackingNumber && o.trackingNumber.toLowerCase().includes(q)) ||
+          (o.courierName && o.courierName.toLowerCase().includes(q))
       );
     }
 
@@ -103,6 +111,20 @@ export default function AdminOrdersPage() {
       case 'PENDING':
       default:
         return 'bg-amber-500/10 text-amber-400 border-amber-500/30';
+    }
+  };
+
+  const getShippingBadge = (status?: string) => {
+    switch (status) {
+      case 'DELIVERED':
+        return { label: 'Delivered', style: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30' };
+      case 'OUT_FOR_DELIVERY':
+        return { label: 'Out for Delivery', style: 'bg-indigo-500/10 text-indigo-400 border-indigo-500/30' };
+      case 'SHIPPED':
+        return { label: 'Shipped', style: 'bg-sky-500/10 text-sky-400 border-sky-500/30' };
+      case 'NOT_SHIPPED':
+      default:
+        return { label: 'Not Shipped', style: 'bg-slate-800 text-slate-400 border-slate-700' };
     }
   };
 
@@ -197,54 +219,71 @@ export default function AdminOrdersPage() {
                   <th className="py-3.5 px-4 font-semibold">Items</th>
                   <th className="py-3.5 px-4 font-semibold">Total Amount</th>
                   <th className="py-3.5 px-4 font-semibold">Order Status</th>
+                  <th className="py-3.5 px-4 font-semibold">Shipping</th>
                   <th className="py-3.5 px-4 font-semibold">Payment Status</th>
                   <th className="py-3.5 px-4 font-semibold text-right">Action</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-800/60">
-                {filteredOrders.map((order) => (
-                  <tr key={order.id} className="hover:bg-slate-800/40 transition-colors">
-                    <td className="py-3.5 px-4">
-                      <div className="font-mono text-xs text-slate-200 font-bold">
-                        #{order.id.slice(0, 8)}
-                      </div>
-                      <div className="text-xs text-slate-500">
-                        {new Date(order.createdAt).toLocaleString()}
-                      </div>
-                    </td>
-                    <td className="py-3.5 px-4">
-                      <div className="flex items-center gap-2">
-                        <User className="w-3.5 h-3.5 text-slate-500" />
-                        <span className="font-medium text-slate-200 text-xs">{order.user.email}</span>
-                      </div>
-                    </td>
-                    <td className="py-3.5 px-4 text-xs text-slate-400 whitespace-nowrap">
-                      {order.items?.length || order._count?.items || 0} item(s)
-                    </td>
-                    <td className="py-3.5 px-4 font-semibold text-slate-100 whitespace-nowrap">
-                      ${Number(order.totalAmount).toFixed(2)}
-                    </td>
-                    <td className="py-3.5 px-4 whitespace-nowrap">
-                      <span className={`inline-flex px-2.5 py-0.5 rounded-full text-xs font-semibold border ${getStatusBadge(order.status)}`}>
-                        {order.status}
-                      </span>
-                    </td>
-                    <td className="py-3.5 px-4 whitespace-nowrap">
-                      <span className={`inline-flex px-2.5 py-0.5 rounded-full text-xs font-semibold border ${getPaymentBadge(order.paymentStatus)}`}>
-                        {order.paymentMethod} • {order.paymentStatus}
-                      </span>
-                    </td>
-                    <td className="py-3.5 px-4 text-right whitespace-nowrap">
-                      <Link
-                        href={`/admin/orders/${order.id}`}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 hover:text-teal-300 text-slate-300 text-xs font-semibold rounded-lg transition-colors"
-                      >
-                        Manage
-                        <ArrowRight className="w-3.5 h-3.5" />
-                      </Link>
-                    </td>
-                  </tr>
-                ))}
+                {filteredOrders.map((order) => {
+                  const shippingInfo = getShippingBadge(order.shippingStatus);
+                  return (
+                    <tr key={order.id} className="hover:bg-slate-800/40 transition-colors">
+                      <td className="py-3.5 px-4">
+                        <div className="font-mono text-xs text-slate-200 font-bold">
+                          #{order.id.slice(0, 8)}
+                        </div>
+                        <div className="text-xs text-slate-500">
+                          {new Date(order.createdAt).toLocaleString()}
+                        </div>
+                      </td>
+                      <td className="py-3.5 px-4">
+                        <div className="flex items-center gap-2">
+                          <User className="w-3.5 h-3.5 text-slate-500" />
+                          <span className="font-medium text-slate-200 text-xs">{order.user.email}</span>
+                        </div>
+                      </td>
+                      <td className="py-3.5 px-4 text-xs text-slate-400 whitespace-nowrap">
+                        {order.items?.length || order._count?.items || 0} item(s)
+                      </td>
+                      <td className="py-3.5 px-4 font-semibold text-slate-100 whitespace-nowrap">
+                        ${Number(order.totalAmount).toFixed(2)}
+                      </td>
+                      <td className="py-3.5 px-4 whitespace-nowrap">
+                        <span className={`inline-flex px-2.5 py-0.5 rounded-full text-xs font-semibold border ${getStatusBadge(order.status)}`}>
+                          {order.status}
+                        </span>
+                      </td>
+                      <td className="py-3.5 px-4 whitespace-nowrap">
+                        <div className="flex flex-col gap-0.5">
+                          <span className={`inline-flex items-center gap-1 w-fit px-2.5 py-0.5 rounded-full text-xs font-semibold border ${shippingInfo.style}`}>
+                            <Truck className="w-3 h-3" />
+                            {shippingInfo.label}
+                          </span>
+                          {order.trackingNumber && (
+                            <span className="text-[11px] font-mono text-slate-400">
+                              {order.courierName ? `${order.courierName}: ` : ''}{order.trackingNumber}
+                            </span>
+                          )}
+                        </div>
+                      </td>
+                      <td className="py-3.5 px-4 whitespace-nowrap">
+                        <span className={`inline-flex px-2.5 py-0.5 rounded-full text-xs font-semibold border ${getPaymentBadge(order.paymentStatus)}`}>
+                          {order.paymentMethod} • {order.paymentStatus}
+                        </span>
+                      </td>
+                      <td className="py-3.5 px-4 text-right whitespace-nowrap">
+                        <Link
+                          href={`/admin/orders/${order.id}`}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 hover:text-teal-300 text-slate-300 text-xs font-semibold rounded-lg transition-colors"
+                        >
+                          Manage
+                          <ArrowRight className="w-3.5 h-3.5" />
+                        </Link>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

@@ -95,13 +95,20 @@ enum PaymentStatus {
   FAILED
 }
 
+enum ShippingStatus {
+  NOT_SHIPPED
+  SHIPPED
+  OUT_FOR_DELIVERY
+  DELIVERED
+}
+
 model Order {
-  id                   String        @id @default(uuid())
+  id                   String         @id @default(uuid())
   userId               String
-  user                 User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  status               OrderStatus   @default(CONFIRMED)
-  paymentMethod        PaymentMethod @default(COD)
-  paymentStatus        PaymentStatus @default(PENDING)
+  user                 User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  status               OrderStatus    @default(CONFIRMED)
+  paymentMethod        PaymentMethod  @default(COD)
+  paymentStatus        PaymentStatus  @default(PENDING)
   totalAmount          Float
   shippingFullName     String
   shippingPhone        String
@@ -111,9 +118,14 @@ model Order {
   shippingState        String
   shippingPostalCode   String
   shippingCountry      String
+  shippingStatus       ShippingStatus @default(NOT_SHIPPED)
+  courierName          String?
+  trackingNumber       String?
+  shippedAt            DateTime?
+  deliveredAt          DateTime?
   items                OrderItem[]
-  createdAt            DateTime      @default(now())
-  updatedAt            DateTime      @updatedAt
+  createdAt            DateTime       @default(now())
+  updatedAt            DateTime       @updatedAt
 }
 
 model OrderItem {

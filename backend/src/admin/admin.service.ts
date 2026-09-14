@@ -7,7 +7,8 @@ import { PrismaService } from '../prisma/prisma.service';
 import { CreateAdminProductDto } from './dto/create-admin-product.dto';
 import { UpdateAdminProductDto } from './dto/update-admin-product.dto';
 import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
-import { OrderStatus } from '@prisma/client';
+import { UpdateShippingDto } from './dto/update-shipping.dto';
+import { OrderStatus, ShippingStatus } from '@prisma/client';
 
 @Injectable()
 export class AdminService {
@@ -267,11 +268,105 @@ export class AdminService {
     }
 
     // Only update status - historical item prices, totals, and address snapshots remain untouched
+    const statusData: any = { status: dto.status };
+    if (dto.status === OrderStatus.DELIVERED) {
+      statusData.shippingStatus = ShippingStatus.DELIVERED;
+      if (!order.deliveredAt) {
+        statusData.deliveredAt = new Date();
+      }
+      if (!order.shippedAt) {
+        statusData.shippedAt = new Date();
+      }
+    }
+
     const updated = await this.prisma.order.update({
       where: { id },
-      data: {
-        status: dto.status,
+      data: statusData,
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
+        items: {
+          include: {
+            product: true,
+          },
+        },
       },
+    });
+
+    return {
+      ...updated,
+      shippingAddressSnapshot: {
+        fullName: updated.shippingFullName,
+        phone: updated.shippingPhone,
+        addressLine1: updated.shippingAddressLine1,
+        addressLine2: updated.shippingAddressLine2,
+        city: updated.shippingCity,
+        state: updated.shippingState,
+        postalCode: updated.shippingPostalCode,
+        country: updated.shippingCountry,
+      },
+    };
+  }
+
+  async updateShipping(id: string, dto: UpdateShippingDto) {
+    const order = await this.prisma.order.findUnique({ where: { id } });
+    if (!order) {
+      throw new NotFoundException('Order not found');
+    }
+
+    const dataToUpdate: any = {};
+
+    if (dto.courierName !== undefined) {
+      dataToUpdate.courierName = dto.courierName?.trim() || null;
+    }
+
+    if (dto.trackingNumber !== undefined) {
+      dataToUpdate.trackingNumber = dto.trackingNumber?.trim() || null;
+    }
+
+    if (dto.shippingStatus !== undefined) {
+      const validStatuses = [
+        ShippingStatus.NOT_SHIPPED,
+        ShippingStatus.SHIPPED,
+        ShippingStatus.OUT_FOR_DELIVERY,
+        ShippingStatus.DELIVERED,
+      ];
+
+      if (!validStatuses.includes(dto.shippingStatus as ShippingStatus)) {
+        throw new BadRequestException(
+          `Invalid shipping status. Must be one of: ${validStatuses.join(', ')}`,
+        );
+      }
+
+      dataToUpdate.shippingStatus = dto.shippingStatus;
+
+      // Automatically set shippedAt if transitioning to SHIPPED or beyond and shippedAt is null
+      if (
+        (dto.shippingStatus === ShippingStatus.SHIPPED ||
+          dto.shippingStatus === ShippingStatus.OUT_FOR_DELIVERY ||
+          dto.shippingStatus === ShippingStatus.DELIVERED) &&
+        !order.shippedAt
+      ) {
+        dataToUpdate.shippedAt = new Date();
+      }
+
+      // Automatically set deliveredAt and sync order.status when transitioning to DELIVERED
+      if (dto.shippingStatus === ShippingStatus.DELIVERED) {
+        if (!order.deliveredAt) {
+          dataToUpdate.deliveredAt = new Date();
+        }
+        dataToUpdate.status = OrderStatus.DELIVERED;
+      }
+    }
+
+    const updated = await this.prisma.order.update({
+      where: { id },
+      data: dataToUpdate,
       include: {
         user: {
           select: {
