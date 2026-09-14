@@ -41,6 +41,11 @@ interface OrderDetail {
   id: string;
   userId: string;
   status: 'PENDING' | 'CONFIRMED' | 'DELIVERED' | 'CANCELLED';
+  shippingStatus?: 'NOT_SHIPPED' | 'SHIPPED' | 'OUT_FOR_DELIVERY' | 'DELIVERED';
+  courierName?: string | null;
+  trackingNumber?: string | null;
+  shippedAt?: string | null;
+  deliveredAt?: string | null;
   paymentMethod: string;
   paymentStatus: string;
   totalAmount: number;
@@ -71,7 +76,11 @@ export default function AdminOrderDetailPage() {
   const [order, setOrder] = useState<OrderDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
+  const [updatingShipping, setUpdatingShipping] = useState(false);
   const [selectedStatus, setSelectedStatus] = useState<string>('');
+  const [shippingStatus, setShippingStatus] = useState<string>('NOT_SHIPPED');
+  const [courierName, setCourierName] = useState<string>('');
+  const [trackingNumber, setTrackingNumber] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
@@ -90,6 +99,9 @@ export default function AdminOrderDetailPage() {
       const data = await res.json();
       setOrder(data);
       setSelectedStatus(data.status);
+      setShippingStatus(data.shippingStatus || 'NOT_SHIPPED');
+      setCourierName(data.courierName || '');
+      setTrackingNumber(data.trackingNumber || '');
     } catch (err: any) {
       setError(err.message || 'Error loading order');
     } finally {
@@ -100,6 +112,44 @@ export default function AdminOrderDetailPage() {
   useEffect(() => {
     fetchOrderDetail();
   }, [id, backendUrl]);
+
+  const handleShippingUpdate = async () => {
+    if (!order) return;
+
+    try {
+      setUpdatingShipping(true);
+      setError(null);
+
+      const res = await fetch(`${backendUrl}/admin/orders/${order.id}/shipping`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          shippingStatus,
+          courierName: courierName.trim() || undefined,
+          trackingNumber: trackingNumber.trim() || undefined,
+        }),
+      });
+
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.message || 'Failed to update shipping details');
+      }
+
+      const updatedOrder = await res.json();
+      setOrder(updatedOrder);
+      setSelectedStatus(updatedOrder.status);
+      setShippingStatus(updatedOrder.shippingStatus || 'NOT_SHIPPED');
+      setCourierName(updatedOrder.courierName || '');
+      setTrackingNumber(updatedOrder.trackingNumber || '');
+      setSuccess('Shipping & courier tracking updated successfully');
+      setTimeout(() => setSuccess(null), 4000);
+    } catch (err: any) {
+      setError(err.message || 'Error updating shipping details');
+    } finally {
+      setUpdatingShipping(false);
+    }
+  };
 
   const handleStatusUpdate = async () => {
     if (!order || selectedStatus === order.status) return;
@@ -143,6 +193,20 @@ export default function AdminOrderDetailPage() {
       case 'PENDING':
       default:
         return 'bg-amber-500/10 text-amber-400 border-amber-500/30';
+    }
+  };
+
+  const getShippingBadge = (status?: string) => {
+    switch (status) {
+      case 'DELIVERED':
+        return { label: 'Delivered', style: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30' };
+      case 'OUT_FOR_DELIVERY':
+        return { label: 'Out for Delivery', style: 'bg-indigo-500/10 text-indigo-400 border-indigo-500/30' };
+      case 'SHIPPED':
+        return { label: 'Shipped', style: 'bg-sky-500/10 text-sky-400 border-sky-500/30' };
+      case 'NOT_SHIPPED':
+      default:
+        return { label: 'Not Shipped', style: 'bg-slate-800 text-slate-400 border-slate-700' };
     }
   };
 
@@ -300,9 +364,99 @@ export default function AdminOrderDetailPage() {
 
           {/* Status Update & Administration Panel */}
           <div className="space-y-6">
+            {/* Shipping & Delivery Management Card */}
             <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl">
               <h3 className="text-base font-bold text-white mb-1 flex items-center gap-2">
-                <Truck className="w-4 h-4 text-amber-400" />
+                <Truck className="w-4 h-4 text-teal-400" />
+                Shipping & Delivery Tracking
+              </h3>
+              <p className="text-xs text-slate-400 mb-4">
+                Assign courier partner, tracking code, and manage dispatch progress
+              </p>
+
+              {/* Current Shipping Status Overview */}
+              <div className="mb-4 p-3 bg-slate-950 rounded-xl border border-slate-800 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-slate-400">Current Phase:</span>
+                  <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold border ${getShippingBadge(order.shippingStatus).style}`}>
+                    <Truck className="w-3 h-3" />
+                    {getShippingBadge(order.shippingStatus).label}
+                  </span>
+                </div>
+                {order.shippedAt && (
+                  <div className="text-[11px] text-slate-400 flex justify-between pt-1 border-t border-slate-800/80">
+                    <span>Dispatched at:</span>
+                    <span className="text-slate-300">{new Date(order.shippedAt).toLocaleString()}</span>
+                  </div>
+                )}
+                {order.deliveredAt && (
+                  <div className="text-[11px] text-slate-400 flex justify-between">
+                    <span>Delivered at:</span>
+                    <span className="text-emerald-400">{new Date(order.deliveredAt).toLocaleString()}</span>
+                  </div>
+                )}
+              </div>
+
+              <div className="space-y-3">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1">
+                    Shipping Status:
+                  </label>
+                  <select
+                    value={shippingStatus}
+                    onChange={(e) => setShippingStatus(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-slate-200 focus:outline-none focus:border-teal-500 transition-colors"
+                  >
+                    <option value="NOT_SHIPPED">NOT_SHIPPED (Processing)</option>
+                    <option value="SHIPPED">SHIPPED (In Transit)</option>
+                    <option value="OUT_FOR_DELIVERY">OUT_FOR_DELIVERY</option>
+                    <option value="DELIVERED">DELIVERED</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1">
+                    Courier Partner:
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. FedEx, BlueDart, DHL, UPS"
+                    value={courierName}
+                    onChange={(e) => setCourierName(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-sm text-slate-200 focus:outline-none focus:border-teal-500 transition-colors placeholder-slate-600"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1">
+                    Tracking Number:
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. TRK-98214210"
+                    value={trackingNumber}
+                    onChange={(e) => setTrackingNumber(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-sm text-slate-200 font-mono focus:outline-none focus:border-teal-500 transition-colors placeholder-slate-600"
+                  />
+                </div>
+
+                <button
+                  onClick={handleShippingUpdate}
+                  disabled={updatingShipping}
+                  className="w-full py-2.5 px-4 rounded-xl bg-teal-600 hover:bg-teal-500 disabled:opacity-50 text-white font-semibold text-sm transition-colors shadow-lg shadow-teal-600/20"
+                >
+                  {updatingShipping ? 'Updating Shipping...' : 'Update Shipping & Tracking'}
+                </button>
+              </div>
+
+              <div className="mt-4 pt-3 border-t border-slate-800 text-[11px] text-slate-500 leading-snug">
+                Updating to <strong>DELIVERED</strong> automatically stamps delivery date and syncs order status.
+              </div>
+            </div>
+
+            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl">
+              <h3 className="text-base font-bold text-white mb-1 flex items-center gap-2">
+                <Package className="w-4 h-4 text-amber-400" />
                 Fulfillment Status
               </h3>
               <p className="text-xs text-slate-400 mb-4">

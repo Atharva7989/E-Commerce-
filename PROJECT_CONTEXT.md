@@ -75,24 +75,50 @@ README.md - General setup instructions
   - Integrated "My Orders" link in global navbar with active route styling.
   - Comprehensive handling for loading skeletons, empty order history, unauthorized access, and non-owned/missing orders (404).
 
+- **Phase 8: Admin Panel & RBAC Security**
+  - Added `Role` enum (`USER`, `ADMIN`) on `User` model.
+  - Security hardening: `/auth/register` hardcodes `role = USER`, ignoring client inputs; initial admin seeded securely via Prisma seed.
+  - Implemented `AdminGuard` protecting all `/admin/*` backend APIs.
+  - Built full Admin frontend at `/admin`, `/admin/products`, `/admin/orders`, and `/admin/orders/[id]`.
+
+- **Guest Shopping Flow & Cart Merge**
+  - Unauthenticated `localStorage` guest cart browsing and cart badge updates.
+  - Login redirection preserving checkout destination (`/login?redirect=/checkout`).
+  - Automatic cart merging (`POST /cart/merge`) on login with stock ceiling caps.
+
+- **Phase 9: Shipping & Delivery**
+  - Added `ShippingStatus` enum (`NOT_SHIPPED`, `SHIPPED`, `OUT_FOR_DELIVERY`, `DELIVERED`) to Prisma schema.
+  - Added `shippingStatus` (default `NOT_SHIPPED`), `courierName`, `trackingNumber`, `shippedAt`, and `deliveredAt` to `Order` model with database migration `20260914104645_add_shipping_and_delivery`.
+  - Implemented admin-only endpoint: `PATCH /admin/orders/:id/shipping` protected by `AdminGuard`.
+  - Automatic timestamp stamping: auto-stamps `shippedAt` when transitioned to `SHIPPED` or `OUT_FOR_DELIVERY`; auto-stamps `deliveredAt` and synchronizes `order.status = DELIVERED` when shipping is set to `DELIVERED`.
+  - Status synchronization: updating order status directly to `DELIVERED` via `PATCH /admin/orders/:id/status` automatically syncs `shippingStatus = DELIVERED` and stamps `deliveredAt`.
+  - Customer frontend updates:
+    - Added shipping status badges and courier/tracking identifiers to My Orders list (`/orders`).
+    - Added a sleek 4-step Delivery Progress Indicator (Order Confirmed → Shipped → Out for Delivery → Delivered) with dynamic timestamps and courier/tracking details banner in Order Details (`/orders/[id]`).
+  - Admin frontend updates:
+    - Added Shipping Status column with quick tracking details in Admin Orders table (`/admin/orders`).
+    - Added dedicated Shipping & Delivery Tracking management card in Admin Order Details (`/admin/orders/[id]`) allowing admins to update shipping status, courier name, and tracking number.
+
 ## Current Phase
-- Phase 7 Completed. Ready for Phase 8 (Online Payment / Razorpay Integration & Order Management).
+- Phase 9 Completed. Ready for Phase 10 (Online Payment / Razorpay Integration).
 
 ## Architecture Updates
 - Added `PrismaService` for database connection in NestJS.
-- Added `ProductsModule`, `AuthModule`, `CartModule`, `AddressesModule`, `CheckoutModule`, and `OrdersModule`.
+- Added `ProductsModule`, `AuthModule`, `CartModule`, `AddressesModule`, `CheckoutModule`, `OrdersModule`, and `AdminModule`.
 - Re-reads live product prices and stock from PostgreSQL database during checkout to ensure data integrity without trusting frontend inputs.
 - Executes order creation, product stock deduction, and cart clearing atomically inside a single Prisma database transaction (`$transaction`).
 - Secure customer order retrieval enforcing tenant isolation at the database level (`where: { userId }`).
+- Authoritative backend role-based access control via `AdminGuard`.
+- Real-time courier dispatch progress tracking and delivery synchronization without external third-party courier dependencies.
 - Next.js fetches data from the backend dynamically (`cache: 'no-store'`).
 
 ## Database schema
 - `Product`: `id`, `name`, `description`, `price`, `imageUrl`, `stock`, `active`, `createdAt`, `updatedAt`, `cartItems`, `orderItems`.
-- `User`: `id`, `name`, `email`, `passwordHash`, `createdAt`, `updatedAt`, `cart`, `addresses`, `orders`.
+- `User`: `id`, `name`, `email`, `passwordHash`, `role` (USER, ADMIN), `createdAt`, `updatedAt`, `cart`, `addresses`, `orders`.
 - `Cart`: `id`, `userId`, `createdAt`, `updatedAt`, `items`.
 - `CartItem`: `id`, `cartId`, `productId`, `quantity`, `createdAt`, `updatedAt`.
 - `Address`: `id`, `userId`, `fullName`, `phone`, `addressLine1`, `addressLine2`, `city`, `state`, `postalCode`, `country`, `createdAt`, `updatedAt`.
-- `Order`: `id`, `userId`, `status`, `paymentMethod`, `paymentStatus`, `totalAmount`, `shippingFullName`, `shippingPhone`, `shippingAddressLine1`, `shippingAddressLine2`, `shippingCity`, `shippingState`, `shippingPostalCode`, `shippingCountry`, `items`, `createdAt`, `updatedAt`.
+- `Order`: `id`, `userId`, `status` (PENDING, CONFIRMED, CANCELLED, DELIVERED), `shippingStatus` (NOT_SHIPPED, SHIPPED, OUT_FOR_DELIVERY, DELIVERED), `courierName`, `trackingNumber`, `shippedAt`, `deliveredAt`, `paymentMethod`, `paymentStatus`, `totalAmount`, `shippingFullName`, `shippingPhone`, `shippingAddressLine1`, `shippingAddressLine2`, `shippingCity`, `shippingState`, `shippingPostalCode`, `shippingCountry`, `items`, `createdAt`, `updatedAt`.
 - `OrderItem`: `id`, `orderId`, `productId`, `productName`, `quantity`, `unitPrice`, `subtotal`, `createdAt`, `updatedAt`.
 
 ## API Endpoints
@@ -123,6 +149,16 @@ README.md - General setup instructions
   - `POST /orders` - Create COD order, deduct stock, and clear cart in atomic transaction
   - `GET /orders` - List user's placed orders
   - `GET /orders/:id` - Retrieve order details by ID
+- **Admin Endpoints**:
+  - `GET /admin/metrics` - High-level store metrics (total sales, orders, products)
+  - `GET /admin/products` - Admin product list including inactive
+  - `POST /admin/products` - Create new product
+  - `PATCH /admin/products/:id` - Edit product details/stock or deactivate
+  - `DELETE /admin/products/:id` - Delete product (or deactivate if referenced)
+  - `GET /admin/orders` - Full customer orders list
+  - `GET /admin/orders/:id` - Detailed order view with customer and snapshot details
+  - `PATCH /admin/orders/:id/status` - Update order status (PENDING, CONFIRMED, DELIVERED, CANCELLED)
+  - `PATCH /admin/orders/:id/shipping` - Update shipping status, courier name, and tracking number
 
 ## Frontend Routes
 - `/` - Product Catalog Listing
@@ -132,7 +168,11 @@ README.md - General setup instructions
 - `/addresses` - Shipping Address Management
 - `/checkout` - Order Review & COD Placement
 - `/orders` - My Orders List
-- `/orders/[id]` - Order Details & Snapshot Review
+- `/orders/[id]` - Order Details with 4-Step Delivery Progress Tracker
+- `/admin` - Admin Analytics Dashboard
+- `/admin/products` - Product Catalog Management
+- `/admin/orders` - Order Management & Fulfillment
+- `/admin/orders/[id]` - Order Details & Shipping Tracker Management
 
 ## Data
 - Seed script (`backend/prisma/seed.ts`) populates the database with 4 physical products.
@@ -173,3 +213,9 @@ README.md - General setup instructions
   - Backend `POST /cart/merge` endpoint merges guest `localStorage` items into the user's database cart upon login.
   - Post-login seamless redirect back to `/checkout` with preserved items.
   - Checkout and order creation remain strictly authenticated via `JwtAuthGuard`.
+- **[Phase 9]**: Shipping & Delivery:
+  - Added `ShippingStatus` enum (`NOT_SHIPPED`, `SHIPPED`, `OUT_FOR_DELIVERY`, `DELIVERED`) and order columns (`shippingStatus`, `courierName`, `trackingNumber`, `shippedAt`, `deliveredAt`).
+  - Added admin-only `PATCH /admin/orders/:id/shipping` API with automatic date stamping (`shippedAt`, `deliveredAt`) and two-way status synchronization with order status `DELIVERED`.
+  - Customer frontends: Added shipping badges to `/orders` and a 4-step delivery progress indicator with courier tracking info to `/orders/[id]`.
+  - Admin frontends: Added shipping badges to `/admin/orders` and a dedicated Shipping & Delivery Tracking management card to `/admin/orders/[id]`.
+
