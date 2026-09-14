@@ -5,15 +5,16 @@ import { useCart } from './CartContext';
 interface AddToCartButtonProps {
   productId: string;
   stock: number;
+  product?: any;
 }
 
-export default function AddToCartButton({ productId, stock }: AddToCartButtonProps) {
+export default function AddToCartButton({ productId, stock, product }: AddToCartButtonProps) {
   const inStock = stock > 0;
   const { addItem } = useCart();
 
   const handleAdd = async (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
-    await addItem(productId, 1);
+    await addItem(productId, 1, product);
   };
 
   return (

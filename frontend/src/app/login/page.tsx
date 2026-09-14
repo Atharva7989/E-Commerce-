@@ -3,6 +3,7 @@
 import { Suspense, useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
+import { useCart } from '../cart/CartContext';
 
 function LoginForm() {
   const [email, setEmail] = useState('');
@@ -12,6 +13,7 @@ function LoginForm() {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { mergeGuestCart, loadCart } = useCart();
 
   useEffect(() => {
     if (searchParams?.get('registered') === 'true') {
@@ -40,7 +42,12 @@ function LoginForm() {
         throw new Error(data.message || 'Login failed');
       }
 
-      router.push('/');
+      // Merge any guest cart items from localStorage into the user's account
+      await mergeGuestCart();
+      await loadCart();
+
+      const redirect = searchParams?.get('redirect') || '/';
+      router.push(redirect);
       router.refresh();
     } catch (err: any) {
       setError(err.message);

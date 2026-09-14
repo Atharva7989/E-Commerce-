@@ -166,3 +166,10 @@ README.md - General setup instructions
   - Backend authoritative `AdminGuard` protecting all `/admin/*` routes (metrics, product catalog, customer order management).
   - Admin UI with `/admin` dashboard metrics, `/admin/products` catalog CRUD, `/admin/orders` order tracking, and `/admin/orders/[id]` status updater.
   - Safe product deactivation if referenced in orders; historical pricing and shipping snapshots preserved permanently.
+- **[Guest Shopping Flow]**:
+  - Unauthenticated Add-to-Cart using `localStorage` (`guest_cart`) with real-time badge and modal management.
+  - Guest cart persists across page navigation and reloads.
+  - "Proceed to Checkout" while unauthenticated automatically redirects to `/login?redirect=/checkout`.
+  - Backend `POST /cart/merge` endpoint merges guest `localStorage` items into the user's database cart upon login.
+  - Post-login seamless redirect back to `/checkout` with preserved items.
+  - Checkout and order creation remain strictly authenticated via `JwtAuthGuard`.

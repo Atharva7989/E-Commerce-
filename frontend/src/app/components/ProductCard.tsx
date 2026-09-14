@@ -23,7 +23,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
 
   const handleAddToCart = async (e: React.MouseEvent) => {
     e.preventDefault(); // prevent navigation when clicking the button
-    await addItem(product.id, 1);
+    await addItem(product.id, 1, product);
   };
 
   return (
