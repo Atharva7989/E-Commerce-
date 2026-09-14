@@ -51,7 +51,8 @@ README.md - General setup instructions
 - Phase 3 Completed. Waiting for Phase 4.
 
 ## Pending Work
-- Phase 4: TBA
+## Current Phase
+- Phase 4: Completed – Cart functionality implemented (backend APIs, Prisma models, and frontend integration).
 
 ## Architecture Updates
 - Added `PrismaService` for database connection in NestJS.

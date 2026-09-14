@@ -17,6 +17,7 @@ model Product {
   active      Boolean  @default(true)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+  cartItems   CartItem[]
 }
 
 model User {
@@ -26,4 +27,28 @@ model User {
   passwordHash String
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
+  cart Cart? @relation("UserCart")
+}
+
+
+model Cart {
+  id        String    @id @default(uuid())
+  userId    String    @unique
+  user      User      @relation("UserCart", fields: [userId], references: [id])
+  items     CartItem[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+model CartItem {
+  id        String   @id @default(uuid())
+  cartId    String
+  cart      Cart     @relation(fields: [cartId], references: [id])
+  productId String
+  product   Product  @relation(fields: [productId], references: [id])
+  quantity  Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([cartId, productId])
 }
