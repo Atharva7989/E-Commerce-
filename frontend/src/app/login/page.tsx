@@ -26,7 +26,8 @@ function LoginForm() {
     setLoading(true);
 
     try {
-      const res = await fetch('http://localhost:3000/auth/login', {
+      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001';
+      const res = await fetch(`${backendUrl}/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),

@@ -58,20 +58,31 @@ export const CartModal: React.FC = () => {
             <span className="text-white font-bold">${cart.subtotal.toFixed(2)}</span>
           </div>
         )}
-        <div className="mt-4 flex justify-end space-x-2">
+        <div className="mt-6 flex flex-wrap justify-between items-center gap-3">
           <button
-            className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-500"
+            className="px-4 py-2 text-sm bg-slate-700/80 hover:bg-slate-700 text-slate-300 rounded-lg transition-colors"
             onClick={clearCart}
             disabled={!cart || cart.items.length === 0}
           >
             Clear Cart
           </button>
-          <button
-            className="px-4 py-2 bg-teal-600 text-white rounded hover:bg-teal-500"
-            onClick={closeCart}
-          >
-            Close
-          </button>
+          <div className="flex items-center space-x-3">
+            <button
+              className="px-4 py-2 text-sm bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition-colors"
+              onClick={closeCart}
+            >
+              Continue Shopping
+            </button>
+            {cart && cart.items.length > 0 && (
+              <a
+                href="/checkout"
+                onClick={closeCart}
+                className="px-5 py-2 text-sm font-semibold bg-gradient-to-r from-teal-500 to-indigo-600 hover:from-teal-400 hover:to-indigo-500 text-white rounded-lg shadow-lg shadow-teal-500/20 transition-all flex items-center gap-2"
+              >
+                Proceed to Checkout →
+              </a>
+            )}
+          </div>
         </div>
       </div>
     </div>
