@@ -28,3 +28,12 @@ A small e-commerce website with 4 physical products.
    ```
 
 Please refer to `PROJECT_CONTEXT.md` for more details.
+
+
+Admin Login info 
+admin@store.com
+AdminPassword123!
+
+User login info 
+alice@example.com
+password123

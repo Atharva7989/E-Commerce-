@@ -48,6 +48,7 @@ export class AuthService {
         name,
         email: normalizedEmail,
         passwordHash,
+        role: 'USER',
       }
     });
 
@@ -78,7 +79,7 @@ export class AuthService {
       throw new UnauthorizedException('Invalid email or password');
     }
 
-    const payload = { sub: user.id, email: user.email };
+    const payload = { sub: user.id, email: user.email, role: user.role };
     const accessToken = await this.jwtService.signAsync(payload);
 
     const { passwordHash: _, ...userWithoutPassword } = user;

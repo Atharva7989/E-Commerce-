@@ -4,10 +4,10 @@ import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
 import CartBadge from '../cart/CartBadge';
-import { Sparkles, MapPin, ShoppingBag, User, LogOut, LogIn } from 'lucide-react';
+import { Sparkles, MapPin, ShoppingBag, User, LogOut, LogIn, Package, Shield } from 'lucide-react';
 
 export const Navbar: React.FC = () => {
-  const [user, setUser] = useState<{ id: string; email: string; name?: string } | null>(null);
+  const [user, setUser] = useState<{ id: string; email: string; name?: string; role?: string } | null>(null);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
   const pathname = usePathname();
@@ -81,6 +81,30 @@ export const Navbar: React.FC = () => {
               <MapPin className="w-4 h-4" />
               My Addresses
             </Link>
+            <Link
+              href="/orders"
+              className={`text-sm font-medium transition-colors flex items-center gap-1.5 ${
+                pathname === '/orders' || pathname.startsWith('/orders/')
+                  ? 'text-teal-400'
+                  : 'text-slate-300 hover:text-white'
+              }`}
+            >
+              <Package className="w-4 h-4" />
+              My Orders
+            </Link>
+            {user?.role === 'ADMIN' && (
+              <Link
+                href="/admin"
+                className={`text-sm font-medium transition-colors flex items-center gap-1.5 px-2.5 py-1 rounded-md border ${
+                  pathname.startsWith('/admin')
+                    ? 'text-amber-400 bg-amber-500/10 border-amber-500/30'
+                    : 'text-amber-400/90 hover:text-amber-300 border-amber-500/20 hover:bg-amber-500/10'
+                }`}
+              >
+                <Shield className="w-3.5 h-3.5 text-amber-400" />
+                Admin
+              </Link>
+            )}
           </nav>
         </div>
 

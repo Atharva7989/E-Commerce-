@@ -41,11 +41,35 @@ async function main() {
   ];
 
   for (const p of products) {
-    const product = await prisma.product.create({
-      data: p,
-    });
-    console.log(`Created product with id: ${product.id}`);
+    const existing = await prisma.product.findFirst({ where: { name: p.name } });
+    if (!existing) {
+      const product = await prisma.product.create({
+        data: p,
+      });
+      console.log(`Created product with id: ${product.id}`);
+    }
   }
+
+  // Seed initial ADMIN user
+  console.log('Seeding initial admin user...');
+  const bcrypt = await import('bcrypt');
+  const adminEmail = 'admin@store.com';
+  const adminPasswordHash = await bcrypt.hash('AdminPassword123!', 10);
+
+  await prisma.user.upsert({
+    where: { email: adminEmail },
+    update: {
+      role: 'ADMIN',
+    },
+    create: {
+      name: 'Store Admin',
+      email: adminEmail,
+      passwordHash: adminPasswordHash,
+      role: 'ADMIN',
+    },
+  });
+  console.log(`Admin user ready: ${adminEmail}`);
+
   console.log('Seeding finished.');
 }
 
