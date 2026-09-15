@@ -16,10 +16,11 @@ export class AuthController {
   async login(@Body() body: any, @Res({ passthrough: true }) response: Response) {
     const result = await this.authService.login(body);
     
+    const isProd = process.env.NODE_ENV === 'production';
     response.cookie('jwt', result.accessToken, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
+      secure: isProd,
+      sameSite: isProd ? 'none' : 'lax',
       path: '/',
       maxAge: 24 * 60 * 60 * 1000, // 1 day
     });
@@ -29,10 +30,11 @@ export class AuthController {
 
   @Post('logout')
   async logout(@Res({ passthrough: true }) response: Response) {
+    const isProd = process.env.NODE_ENV === 'production';
     response.clearCookie('jwt', {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
+      secure: isProd,
+      sameSite: isProd ? 'none' : 'lax',
       path: '/',
     });
     return { message: 'Logged out successfully' };
