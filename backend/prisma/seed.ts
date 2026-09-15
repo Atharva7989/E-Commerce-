@@ -52,9 +52,14 @@ async function main() {
 
   // Seed initial ADMIN user
   console.log('Seeding initial admin user...');
+  const adminPassword = process.env.ADMIN_PASSWORD;
+  if (!adminPassword) {
+    throw new Error('ADMIN_PASSWORD environment variable is required to seed the admin user');
+  }
+
   const bcrypt = await import('bcrypt');
   const adminEmail = 'admin@store.com';
-  const adminPasswordHash = await bcrypt.hash('AdminPassword123!', 10);
+  const adminPasswordHash = await bcrypt.hash(adminPassword, 10);
 
   await prisma.user.upsert({
     where: { email: adminEmail },
