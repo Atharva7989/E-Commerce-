@@ -12,14 +12,15 @@ interface Product {
 }
 
 export default async function Home() {
+  const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001';
   let products: Product[] = [];
   
   try {
-    const res = await fetch('http://localhost:3001/products', { cache: 'no-store' });
+    const res = await fetch(`${backendUrl}/products`, { cache: 'no-store' });
     if (!res.ok) throw new Error('Failed to fetch products');
     products = await res.json();
   } catch (error) {
-    console.error(error);
+    console.error('Error fetching products:', error);
   }
 
   return (
